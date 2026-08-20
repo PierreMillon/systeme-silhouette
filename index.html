@@ -271,13 +271,20 @@ function selectSide(side){
 
 function handleSuccess(){
   const fb = document.getElementById('feedback');
-  fb.textContent = 'Correct !';
-  fb.className = 'feedback ok';
   streak++;
-  if(streak >= 3 && current === unlocked){
-    unlocked = Math.min(unlocked+1, LEVELS.length);
+  // Niveau terminé (3 bonnes réponses d'affilée sur le niveau le plus avancé) :
+  // on débloque le suivant ET on y bascule directement, sans clic à faire.
+  let levelUp = false;
+  if(streak >= 3){
+    if(current === unlocked && unlocked < LEVELS.length){
+      unlocked++;
+      current = unlocked;
+      levelUp = true;
+    }
+    streak = 0;
   }
-  if(streak >= 3) streak = 0;
+  fb.textContent = levelUp ? 'Niveau suivant débloqué !' : 'Correct !';
+  fb.className = 'feedback ok';
   renderLevels();
   setTimeout(newQuestion, 600);
 }
