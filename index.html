@@ -72,6 +72,9 @@
   .morph-svg{width:100%; max-width:110px; height:auto; aspect-ratio:1}
   .morph-svg .shape{fill:none; stroke:var(--pink); stroke-width:7; stroke-linecap:round; stroke-linejoin:round}
   .morph-svg .shape-b{stroke:var(--gold)}
+  /* Cartes à vrai morphing (traits animés en SMIL, cf <animate> dans le SVG) :
+     chaque trait glisse/pivote littéralement d'une forme à l'autre. */
+  .morph-svg .stroke{fill:none; stroke:var(--pink); stroke-width:7; stroke-linecap:round}
   .morph-a{animation:morphA 4s ease-in-out infinite}
   .morph-b{animation:morphB 4s ease-in-out infinite}
   @keyframes morphA{
@@ -144,22 +147,56 @@
 </div>
 
 <div class="panel">
-  <div class="morph-title">Deux cas particuliers</div>
+  <div class="morph-title">Repères visuels</div>
   <div class="morph-grid">
+
     <div class="morph-card">
       <svg class="morph-svg" viewBox="0 0 100 100" aria-hidden="true">
-        <g class="shape morph-a">
-          <polyline points="60,12 28,58 76,58" />
-          <line x1="60" y1="12" x2="60" y2="88" />
-        </g>
-        <g class="shape shape-b morph-b">
-          <line x1="28" y1="12" x2="28" y2="88" />
-          <line x1="28" y1="12" x2="74" y2="12" />
-          <line x1="28" y1="50" x2="60" y2="50" />
-        </g>
+        <!-- Barre verticale du 4 (droite) <-> spine du F (gauche) : glisse latéralement -->
+        <line class="stroke">
+          <animate attributeName="x1" values="64;64;30;30;64" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y1" values="12;12;12;12;12" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
+          <animate attributeName="x2" values="64;64;30;30;64" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="88;88;88;88;88" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
+        </line>
+        <!-- Diagonale du 4 <-> barre du haut du F : pivote et s'aplatit -->
+        <line class="stroke">
+          <animate attributeName="x1" values="64;64;30;30;64" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y1" values="12;12;12;12;12" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
+          <animate attributeName="x2" values="26;26;74;74;26" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="60;60;12;12;60" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+        </line>
+        <!-- Barre du bas (crossbar) du 4 <-> barre du milieu du F : glisse et remonte -->
+        <line class="stroke">
+          <animate attributeName="x1" values="26;26;30;30;26" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y1" values="60;60;50;50;60" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="x2" values="78;78;62;62;78" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="60;60;50;50;60" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+        </line>
       </svg>
-      <p class="morph-caption"><b>4 → F</b> — la barre du bas du 4 glisse vers la droite et remonte : il ne reste que les barres du F.</p>
+      <p class="morph-caption"><b>4 ↔ F</b> — la barre verticale du F glisse à droite pour devenir celle du 4 ; la barre du haut du F pivote pour devenir la diagonale du 4.</p>
     </div>
+
+    <div class="morph-card">
+      <svg class="morph-svg" viewBox="0 0 100 100" aria-hidden="true">
+        <!-- Barre du haut du 7 <-> barre du bas du L : descend tout en bas -->
+        <line class="stroke">
+          <animate attributeName="x1" values="26;26;30;30;26" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y1" values="15;15;85;85;15" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="x2" values="74;74;72;72;74" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="15;15;85;85;15" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+        </line>
+        <!-- Diagonale du 7 <-> barre verticale du L : se redresse -->
+        <line class="stroke">
+          <animate attributeName="x1" values="74;74;30;30;74" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y1" values="15;15;12;12;15" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
+          <animate attributeName="x2" values="38;38;30;30;38" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="88;88;85;85;88" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
+        </line>
+      </svg>
+      <p class="morph-caption"><b>7 ↔ L</b> — tourne le 7 : la diagonale se redresse en barre verticale, la barre du haut redescend tout en bas.</p>
+    </div>
+
     <div class="morph-card">
       <svg class="morph-svg" viewBox="0 0 100 100" aria-hidden="true">
         <g class="shape morph-a">
@@ -173,6 +210,7 @@
       </svg>
       <p class="morph-caption"><b>9 → q</b> — exception : on retient le 9 avec un <b>q minuscule</b> (boucle + jambage), pas un Q majuscule qui ne ressemble à rien.</p>
     </div>
+
   </div>
 </div>
 
@@ -380,6 +418,15 @@ document.addEventListener('keydown', e=>{
 
 renderLevels();
 newQuestion();
+
+// Les animations "morphing" 4↔F et 7↔L sont en SMIL (<animate> dans le SVG),
+// que la media query CSS prefers-reduced-motion ne peut pas contrôler : on les
+// fige nous-mêmes si l'utilisateur a demandé de réduire les animations.
+if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.morph-svg').forEach(svg=>{
+    if(svg.pauseAnimations) svg.pauseAnimations();
+  });
+}
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('service-worker.js').catch(()=>{});
