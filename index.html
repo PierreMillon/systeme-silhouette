@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Système Silhouette — Entraînement</title>
+<meta name="description" content="Entraîne-toi à mémoriser des chiffres avec le Système Silhouette : une consonne par chiffre, choisie par ressemblance de forme.">
+<meta name="theme-color" content="#0f0f14">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#0f0f14; --panel:#17171f; --pink:#ff4fa3; --pink-dim:#ff4fa355;
+    --text:#f2f2f5; --muted:#9797a3; --green:#37d67a; --red:#ff5470; --gold:#ffcc4d;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px;
+  }
+  h1{font-size:1.3rem; margin:8px 0 2px; text-align:center}
+  .sub{color:var(--pink); font-size:.85rem; margin-bottom:20px; text-align:center}
+  .panel{
+    background:var(--panel); border-radius:18px; padding:20px;
+    width:100%; max-width:420px; margin-bottom:16px;
+  }
+  table{width:100%; border-collapse:collapse; font-size:.9rem}
+  td{padding:5px 4px; border-bottom:1px solid #26262f}
+  td:first-child{color:var(--pink); font-weight:600; width:30%}
+  .levels{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:16px}
+  .lvl-btn{
+    background:var(--panel); color:var(--muted); border:1px solid #2a2a35;
+    border-radius:10px; padding:8px 12px; font-size:.8rem; cursor:pointer;
+  }
+  .lvl-btn.active{background:var(--pink-dim); color:var(--pink); border-color:var(--pink)}
+  .lvl-btn.locked{opacity:.35}
+  .pyramid{display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:16px}
+  .pyr-row{display:flex; gap:4px}
+  .pyr-cell{
+    width:16px; height:16px; border-radius:4px; background:#26262f;
+    transition:background .25s;
+  }
+  .pyr-cell.filled{background:var(--gold)}
+  .prompt{font-size:2rem; text-align:center; letter-spacing:2px; margin:12px 0; word-break:break-all}
+  input{
+    width:100%; padding:14px; font-size:1.1rem; border-radius:12px; border:1px solid #2a2a35;
+    background:#0f0f14; color:var(--text); text-align:center; text-transform:uppercase;
+  }
+  input:focus{outline:2px solid var(--pink)}
+  button.check{
+    width:100%; margin-top:10px; padding:14px; border:none; border-radius:12px;
+    background:var(--pink); color:#0f0f14; font-weight:700; font-size:1rem; cursor:pointer;
+  }
+  .feedback{text-align:center; min-height:24px; margin-top:10px; font-size:.9rem}
+  .feedback.ok{color:var(--green)}
+  .feedback.ko{color:var(--red)}
+  .streak{text-align:center; color:var(--muted); font-size:.8rem; margin-top:4px}
+  footer{color:var(--muted); font-size:.7rem; margin-top:24px; text-align:center}
+</style>
+</head>
+<body>
+
+<h1>Système Silhouette</h1>
+<div class="sub">Entraînement à la mémorisation de chiffres</div>
+
+<div class="panel">
+  <table>
+    <tr><td>0</td><td>D</td></tr>
+    <tr><td>1</td><td>T</td></tr>
+    <tr><td>2</td><td>Z</td></tr>
+    <tr><td>3</td><td>M</td></tr>
+    <tr><td>4</td><td>F</td></tr>
+    <tr><td>5</td><td>S</td></tr>
+    <tr><td>6</td><td>G</td></tr>
+    <tr><td>7</td><td>L</td></tr>
+    <tr><td>8</td><td>B</td></tr>
+    <tr><td>9</td><td>q</td></tr>
+  </table>
+</div>
+
+<div class="levels" id="levels"></div>
+
+<div class="pyramid" id="pyramid"></div>
+
+<div class="panel">
+  <div class="prompt" id="prompt">—</div>
+  <input id="answer" autocomplete="off" autocapitalize="characters" placeholder="ta réponse" />
+  <button class="check" id="check">Valider</button>
+  <div class="feedback" id="feedback"></div>
+  <div class="streak" id="streak"></div>
+</div>
+
+<footer>Système Silhouette · fonctionne hors-ligne une fois installé</footer>
+
+<script>
+const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'Q'};
+const REVERSE = Object.fromEntries(Object.entries(TABLE).map(([d,l])=>[l,d]));
+
+const LEVELS = [
+  {id:1, name:'Chiffre → lettre', digits:1, mode:'toLetter'},
+  {id:2, name:'Lettre → chiffre', digits:1, mode:'toDigit'},
+  {id:3, name:'4 chiffres', digits:4, mode:'toLetter'},
+  {id:4, name:'Numéro (10)', digits:10, mode:'toLetter'},
+  {id:5, name:'INSEE (15)', digits:15, mode:'toLetter'},
+];
+
+let unlocked = 1;
+let current = 1;
+let streak = 0;
+let currentAnswer = '';
+
+function randomDigits(n){
+  let s = '';
+  for(let i=0;i<n;i++) s += Math.floor(Math.random()*10);
+  return s;
+}
+
+function renderLevels(){
+  const el = document.getElementById('levels');
+  el.innerHTML = '';
+  LEVELS.forEach(l=>{
+    const b = document.createElement('button');
+    b.className = 'lvl-btn' + (l.id===current?' active':'') + (l.id>unlocked?' locked':'');
+    b.textContent = l.id + '. ' + l.name;
+    b.disabled = l.id > unlocked;
+    b.onclick = ()=>{ current = l.id; streak = 0; newQuestion(); renderLevels(); };
+    el.appendChild(b);
+  });
+}
+
+function renderPyramid(){
+  const el = document.getElementById('pyramid');
+  el.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'pyr-row';
+  for(let i=0;i<3;i++){
+    const c = document.createElement('div');
+    c.className = 'pyr-cell' + (i<streak?' filled':'');
+    row.appendChild(c);
+  }
+  el.appendChild(row);
+}
+
+function newQuestion(){
+  const lvl = LEVELS.find(l=>l.id===current);
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('answer').value = '';
+
+  if(lvl.mode === 'toLetter'){
+    const digits = randomDigits(lvl.digits);
+    document.getElementById('prompt').textContent = digits;
+    currentAnswer = digits.split('').map(d=>TABLE[d]).join('');
+  } else {
+    const letters = Object.values(TABLE);
+    const letter = letters[Math.floor(Math.random()*letters.length)];
+    document.getElementById('prompt').textContent = letter;
+    currentAnswer = REVERSE[letter];
+  }
+  document.getElementById('streak').textContent = 'Série actuelle : ' + streak + '/3';
+  renderPyramid();
+  document.getElementById('answer').focus();
+}
+
+function check(){
+  const val = document.getElementById('answer').value.trim().toUpperCase();
+  const fb = document.getElementById('feedback');
+  if(val === currentAnswer.toUpperCase()){
+    fb.textContent = 'Correct !';
+    fb.className = 'feedback ok';
+    streak++;
+    if(streak >= 3 && current < unlocked+1 && current === unlocked){
+      unlocked = Math.min(unlocked+1, LEVELS.length);
+    }
+    if(streak >= 3) streak = 0;
+    renderLevels();
+    setTimeout(newQuestion, 700);
+  } else {
+    fb.textContent = 'Attendu : ' + currentAnswer;
+    fb.className = 'feedback ko';
+    streak = 0;
+    renderPyramid();
+    document.getElementById('streak').textContent = 'Série actuelle : 0/3';
+  }
+}
+
+document.getElementById('check').onclick = check;
+document.getElementById('answer').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') check();
+});
+
+renderLevels();
+newQuestion();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
