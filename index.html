@@ -66,6 +66,32 @@
   .choice-btn.right{border-color:var(--green); background:#173023}
   .choice-btn.wrong{border-color:var(--red); background:#301820}
 
+  .morph-title{font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; text-align:center; margin:0 0 12px}
+  .morph-grid{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
+  .morph-card{flex:1; min-width:130px; max-width:180px; text-align:center}
+  .morph-svg{width:100%; max-width:110px; height:auto; aspect-ratio:1}
+  .morph-svg .shape{fill:none; stroke:var(--pink); stroke-width:7; stroke-linecap:round; stroke-linejoin:round}
+  .morph-svg .shape-b{stroke:var(--gold)}
+  .morph-a{animation:morphA 4s ease-in-out infinite}
+  .morph-b{animation:morphB 4s ease-in-out infinite}
+  @keyframes morphA{
+    0%,20%{opacity:1; transform:translate(0,0) rotate(0)}
+    45%,55%{opacity:0; transform:translate(6px,-4px) rotate(-4deg)}
+    80%,100%{opacity:1; transform:translate(0,0) rotate(0)}
+  }
+  @keyframes morphB{
+    0%,20%{opacity:0; transform:translate(-6px,4px) rotate(4deg)}
+    45%,55%{opacity:1; transform:translate(0,0) rotate(0)}
+    80%,100%{opacity:0; transform:translate(-6px,4px) rotate(4deg)}
+  }
+  .morph-caption{color:var(--muted); font-size:.78rem; margin-top:8px; line-height:1.35}
+  .morph-caption b{color:var(--text)}
+  @media (prefers-reduced-motion:reduce){
+    .morph-a, .morph-b{animation:none}
+    .morph-a{opacity:1}
+    .morph-b{opacity:0}
+  }
+
   .feedback{text-align:center; min-height:24px; margin-top:10px; font-size:.9rem}
   .feedback.ok{color:var(--green)}
   .feedback.ko{color:var(--red)}
@@ -99,8 +125,41 @@
   <div class="legend-wrap">
     <table class="legend">
       <tr><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
-      <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>Q</td></tr>
+      <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>q</td></tr>
     </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="morph-title">Deux cas particuliers</div>
+  <div class="morph-grid">
+    <div class="morph-card">
+      <svg class="morph-svg" viewBox="0 0 100 100" aria-hidden="true">
+        <g class="shape morph-a">
+          <polyline points="60,12 28,58 76,58" />
+          <line x1="60" y1="12" x2="60" y2="88" />
+        </g>
+        <g class="shape shape-b morph-b">
+          <line x1="28" y1="12" x2="28" y2="88" />
+          <line x1="28" y1="12" x2="74" y2="12" />
+          <line x1="28" y1="50" x2="60" y2="50" />
+        </g>
+      </svg>
+      <p class="morph-caption"><b>4 → F</b> — la barre du bas du 4 glisse vers la droite et remonte : il ne reste que les barres du F.</p>
+    </div>
+    <div class="morph-card">
+      <svg class="morph-svg" viewBox="0 0 100 100" aria-hidden="true">
+        <g class="shape morph-a">
+          <circle cx="44" cy="36" r="21" />
+          <path d="M65,36 C65,58 58,80 38,86" />
+        </g>
+        <g class="shape shape-b morph-b">
+          <circle cx="40" cy="38" r="21" />
+          <line x1="61" y1="24" x2="61" y2="90" />
+        </g>
+      </svg>
+      <p class="morph-caption"><b>9 → q</b> — exception : on retient le 9 avec un <b>q minuscule</b> (boucle + jambage), pas un Q majuscule qui ne ressemble à rien.</p>
+    </div>
   </div>
 </div>
 
@@ -120,7 +179,9 @@
 <footer>Système Silhouette · fonctionne hors-ligne une fois installé</footer>
 
 <script>
-const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'Q'};
+// Exception : le 9 se retient avec un "q" minuscule (boucle + jambage), pas un Q
+// majuscule qui ne ressemble à rien. Les réponses du jeu utilisent donc bien "q".
+const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'q'};
 const REVERSE = Object.fromEntries(Object.entries(TABLE).map(([d,l])=>[l,d]));
 
 const LEVELS = [
