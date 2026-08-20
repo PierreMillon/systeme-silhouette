@@ -141,7 +141,7 @@
   <div class="legend-wrap">
     <table class="legend">
       <tr><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
-      <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>q</td></tr>
+      <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>Q</td></tr>
     </table>
   </div>
 </div>
@@ -205,10 +205,10 @@
         </g>
         <g class="shape shape-b morph-b">
           <circle cx="40" cy="38" r="21" />
-          <line x1="61" y1="24" x2="61" y2="90" />
+          <line x1="53" y1="52" x2="70" y2="70" />
         </g>
       </svg>
-      <p class="morph-caption"><b>9 → q</b> — exception : on retient le 9 avec un <b>q minuscule</b> (boucle + jambage), pas un Q majuscule qui ne ressemble à rien.</p>
+      <p class="morph-caption"><b>9 ↔ Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule : pas besoin de passer en minuscule.</p>
     </div>
 
   </div>
@@ -217,9 +217,7 @@
 <footer>Système Silhouette · fonctionne hors-ligne une fois installé</footer>
 
 <script>
-// Exception : le 9 se retient avec un "q" minuscule (boucle + jambage), pas un Q
-// majuscule qui ne ressemble à rien. Les réponses du jeu utilisent donc bien "q".
-const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'q'};
+const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'Q'};
 const REVERSE = Object.fromEntries(Object.entries(TABLE).map(([d,l])=>[l,d]));
 
 const LEVELS = [
