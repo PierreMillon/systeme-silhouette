@@ -56,14 +56,15 @@
   .typed-box.filled{border-color:var(--pink-dim); background:#1c1c26}
   .typed-box.cursor{border-color:var(--pink)}
 
-  .keyboard{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:6px}
-  .kb-key{
-    min-width:44px; height:44px; padding:0 12px; border-radius:10px; border:1px solid #2a2a35;
-    background:var(--bg); color:var(--text); font-size:1.05rem; font-weight:700; cursor:pointer;
+  .choices{display:flex; gap:12px; margin-top:8px}
+  .choice-btn{
+    flex:1; height:96px; border-radius:16px; border:1px solid #2a2a35;
+    background:var(--bg); color:var(--text); font-size:2rem; font-weight:800; cursor:pointer;
+    transition:background .1s, border-color .1s, transform .1s;
   }
-  .kb-key:active{background:var(--pink-dim)}
-  .kb-key.kb-focus{outline:2px solid var(--pink); border-color:var(--pink)}
-  .kb-key.kb-del{color:var(--muted); font-size:1rem}
+  .choice-btn:active{background:var(--pink-dim); border-color:var(--pink); transform:scale(.97)}
+  .choice-btn.right{border-color:var(--green); background:#173023}
+  .choice-btn.wrong{border-color:var(--red); background:#301820}
 
   .feedback{text-align:center; min-height:24px; margin-top:10px; font-size:.9rem}
   .feedback.ok{color:var(--green)}
@@ -85,7 +86,7 @@
     table.legend td{padding:12px 4px}
     .prompt{font-size:2.6rem}
     .typed-box{width:32px; height:42px; font-size:1.3rem}
-    .kb-key{min-width:52px; height:52px; padding:0 14px; font-size:1.2rem}
+    .choice-btn{height:120px; font-size:2.6rem}
   }
 </style>
 </head>
@@ -110,10 +111,10 @@
 <div class="panel">
   <div class="prompt" id="prompt">—</div>
   <div class="typed" id="typed"></div>
-  <div class="keyboard" id="keyboard"></div>
+  <div class="choices" id="choices"></div>
   <div class="feedback" id="feedback"></div>
   <div class="streak" id="streak"></div>
-  <div class="hint">Réponse validée automatiquement · ← → puis Entrée pour choisir au clavier physique</div>
+  <div class="hint">Touche la bonne réponse · sur ordinateur : ← / →</div>
 </div>
 
 <footer>Système Silhouette · fonctionne hors-ligne une fois installé</footer>
@@ -135,10 +136,10 @@ let current = 1;
 let streak = 0;
 let currentAnswer = '';
 
-// Réponse en cours de saisie (tableau de caractères) et clavier virtuel courant.
+// Réponse en cours de saisie (tableau de caractères) et paire de choix affichée
+// (le bon caractère + un distracteur, dans un ordre gauche/droite tiré au hasard).
 let buffer = [];
-let keys = [];
-let focusIndex = 0;
+let pair = ['', ''];
 let locked = false; // empêche double-validation pendant l'affichage du feedback
 
 function randomDigits(n){
@@ -193,27 +194,32 @@ function renderTyped(){
   }
 }
 
-// Clavier virtuel : uniquement les réponses possibles pour ce niveau (10 lettres ou
-// 10 chiffres), plus une touche effacer. Sert à la fois de clavier tactile (mobile)
-// et de sélecteur navigable au clavier physique (← → puis Entrée) sur ordinateur.
-function renderKeyboard(){
-  const el = document.getElementById('keyboard');
+// Tire un distracteur différent du bon caractère parmi les réponses possibles du niveau.
+function pickDistractor(correct){
+  const pool = currentKeys().filter(k=>k!==correct);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// Prépare la paire de boutons pour le caractère courant (position = buffer.length) :
+// le bon caractère + un distracteur, placés au hasard à gauche ou à droite.
+function nextPair(){
+  const correct = currentAnswer[buffer.length];
+  const distractor = pickDistractor(correct);
+  pair = Math.random() < 0.5 ? [correct, distractor] : [distractor, correct];
+  renderChoices();
+}
+
+function renderChoices(cls){
+  const el = document.getElementById('choices');
   el.innerHTML = '';
-  keys = currentKeys();
-  keys.forEach((k,i)=>{
+  pair.forEach((k,i)=>{
     const b = document.createElement('button');
-    b.className = 'kb-key' + (i===focusIndex ? ' kb-focus':'');
+    b.className = 'choice-btn' + (cls && cls[i] ? ' ' + cls[i] : '');
     b.textContent = k;
     b.type = 'button';
-    b.onclick = ()=> pressKey(k);
+    b.onclick = ()=> selectSide(i);
     el.appendChild(b);
   });
-  const del = document.createElement('button');
-  del.className = 'kb-key kb-del' + (focusIndex===keys.length ? ' kb-focus':'');
-  del.type = 'button';
-  del.textContent = '⌫';
-  del.onclick = ()=> backspace();
-  el.appendChild(del);
 }
 
 function newQuestion(){
@@ -222,7 +228,6 @@ function newQuestion(){
   fb.textContent = '';
   fb.className = 'feedback';
   buffer = [];
-  focusIndex = 0;
   locked = false;
 
   if(lvl.mode === 'toLetter'){
@@ -237,78 +242,71 @@ function newQuestion(){
   }
   document.getElementById('streak').textContent = 'Série actuelle : ' + streak + '/3';
   renderPyramid();
-  renderKeyboard();
   renderTyped();
+  nextPair();
 }
 
-function pressKey(k){
+// side : 0 = bouton gauche, 1 = bouton droite.
+function selectSide(side){
   if(locked) return;
-  const lvl = currentLevel();
-  if(buffer.length >= lvl.digits) return;
-  buffer.push(k);
-  renderTyped();
-  if(buffer.length === lvl.digits){
-    locked = true;
-    setTimeout(checkAnswer, 120);
-  }
-}
+  const correct = currentAnswer[buffer.length];
+  const chosen = pair[side];
+  locked = true;
+  const cls = ['', ''];
+  cls[side] = chosen === correct ? 'right' : 'wrong';
+  renderChoices(cls);
 
-function backspace(){
-  if(locked || buffer.length===0) return;
-  buffer.pop();
-  renderTyped();
-}
-
-function checkAnswer(){
-  const val = buffer.join('');
-  const fb = document.getElementById('feedback');
-  if(val === currentAnswer){
-    fb.textContent = 'Correct !';
-    fb.className = 'feedback ok';
-    streak++;
-    if(streak >= 3 && current === unlocked){
-      unlocked = Math.min(unlocked+1, LEVELS.length);
+  if(chosen === correct){
+    buffer.push(chosen);
+    renderTyped();
+    if(buffer.length === currentAnswer.length){
+      setTimeout(handleSuccess, 350);
+    } else {
+      setTimeout(()=>{ locked = false; nextPair(); }, 250);
     }
-    if(streak >= 3) streak = 0;
-    renderLevels();
-    setTimeout(newQuestion, 700);
   } else {
-    fb.textContent = 'Attendu : ' + currentAnswer;
-    fb.className = 'feedback ko';
-    streak = 0;
-    renderPyramid();
-    document.getElementById('streak').textContent = 'Série actuelle : 0/3';
-    setTimeout(()=>{
-      buffer = [];
-      focusIndex = 0;
-      locked = false;
-      fb.textContent = '';
-      fb.className = 'feedback';
-      renderTyped();
-      renderKeyboard();
-    }, 900);
+    setTimeout(handleFailure, 600);
   }
+}
+
+function handleSuccess(){
+  const fb = document.getElementById('feedback');
+  fb.textContent = 'Correct !';
+  fb.className = 'feedback ok';
+  streak++;
+  if(streak >= 3 && current === unlocked){
+    unlocked = Math.min(unlocked+1, LEVELS.length);
+  }
+  if(streak >= 3) streak = 0;
+  renderLevels();
+  setTimeout(newQuestion, 600);
+}
+
+function handleFailure(){
+  const fb = document.getElementById('feedback');
+  fb.textContent = 'Raté — attendu : ' + currentAnswer;
+  fb.className = 'feedback ko';
+  streak = 0;
+  renderPyramid();
+  document.getElementById('streak').textContent = 'Série actuelle : 0/3';
+  setTimeout(()=>{
+    buffer = [];
+    locked = false;
+    fb.textContent = '';
+    fb.className = 'feedback';
+    renderTyped();
+    nextPair();
+  }, 900);
 }
 
 document.addEventListener('keydown', e=>{
   if(locked) return;
-  if(e.key === 'ArrowRight'){
-    focusIndex = (focusIndex + 1) % (keys.length + 1);
-    renderKeyboard();
+  if(e.key === 'ArrowLeft'){
     e.preventDefault();
-  } else if(e.key === 'ArrowLeft'){
-    focusIndex = (focusIndex - 1 + keys.length + 1) % (keys.length + 1);
-    renderKeyboard();
+    selectSide(0);
+  } else if(e.key === 'ArrowRight'){
     e.preventDefault();
-  } else if(e.key === 'Enter' || e.key === ' '){
-    e.preventDefault();
-    if(focusIndex === keys.length) backspace();
-    else pressKey(keys[focusIndex]);
-  } else if(e.key === 'Backspace'){
-    backspace();
-  } else if(e.key.length === 1){
-    const up = e.key.toUpperCase();
-    if(keys.includes(up)) pressKey(up);
+    selectSide(1);
   }
 });
 
