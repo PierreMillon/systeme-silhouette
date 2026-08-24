@@ -20,6 +20,12 @@
     display:flex; flex-direction:column; align-items:center; padding:24px 16px 48px;
     -webkit-tap-highlight-color:transparent; overflow-x:hidden;
   }
+  .lang-toggle{display:flex; gap:4px; background:var(--panel); border-radius:999px; padding:3px; margin-bottom:10px}
+  .lang-btn{
+    border:none; background:transparent; color:var(--muted); font-size:.75rem; font-weight:700;
+    padding:5px 14px; border-radius:999px; cursor:pointer;
+  }
+  .lang-btn.active{background:var(--pink-dim); color:var(--pink)}
   h1{font-size:1.3rem; margin:8px 0 2px; text-align:center}
   .sub{color:var(--pink); font-size:.85rem; margin-bottom:14px; text-align:center}
   .intro{
@@ -133,16 +139,12 @@
 </head>
 <body>
 
-<h1>Système Silhouette</h1>
-<div class="sub">Entraînement à la mémorisation de chiffres</div>
+<div class="lang-toggle" id="langToggle"></div>
 
-<p class="intro">
-  Le <b>Système Silhouette</b> associe une consonne à chaque chiffre, choisie parce que sa
-  <b>forme ressemble à celle du chiffre</b> (le 8 a deux boucles comme le B, le 1 n'a qu'un
-  trait vertical comme le T…). N'importe quelle suite de chiffres devient ainsi une suite de
-  consonnes, dans laquelle on peut glisser des voyelles pour fabriquer un mot facile à
-  retenir — utile pour un mot de passe, un numéro de téléphone, un code.
-</p>
+<h1>Système Silhouette</h1>
+<div class="sub" id="subtitle"></div>
+
+<p class="intro" id="intro"></p>
 
 <div class="levels" id="levels"></div>
 
@@ -155,7 +157,7 @@
   <div class="choices" id="choices"></div>
   <div class="feedback" id="feedback"></div>
   <div class="streak" id="streak"></div>
-  <div class="hint">Touche la bonne réponse · sur ordinateur : ← / →</div>
+  <div class="hint" id="hint"></div>
 </div>
 
 <div class="panel">
@@ -165,22 +167,11 @@
       <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>Q</td></tr>
     </table>
   </div>
-  <ul class="rules">
-    <li><b>0 → D</b> — le 0 est une boucle fermée, comme la panse ronde du D.</li>
-    <li><b>1 → T</b> — un seul trait vertical, comme la barre du T.</li>
-    <li><b>2 → Z</b> — le Z trace le même angle en zigzag que le 2.</li>
-    <li><b>3 → M</b> — posé à l'horizontale, le M a trois jambages, comme les trois courbes du 3.</li>
-    <li><b>4 → F</b> — voir l'animation ci-dessous : la barre du F pivote pour former la diagonale du 4.</li>
-    <li><b>5 → S</b> — le S est un 5 adouci, la même double courbe en miroir.</li>
-    <li><b>6 → G</b> — le 6 est une boucle avec une queue, comme le ventre du G.</li>
-    <li><b>7 → L</b> — voir l'animation ci-dessous : le 7 se redresse pour former le L.</li>
-    <li><b>8 → B</b> — le 8 empile deux boucles, exactement comme le B.</li>
-    <li><b>9 → Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule.</li>
-  </ul>
+  <ul class="rules" id="rules"></ul>
 </div>
 
 <div class="panel">
-  <div class="morph-title">Repères visuels</div>
+  <div class="morph-title" id="morphTitle"></div>
   <div class="morph-grid">
 
     <div class="morph-card">
@@ -207,7 +198,7 @@
           <animate attributeName="y2" values="60;60;50;50;60" keyTimes="0;0.2;0.5;0.7;1" dur="5s" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" repeatCount="indefinite"/>
         </line>
       </svg>
-      <p class="morph-caption"><b>4 ↔ F</b> — la barre verticale du F glisse à droite pour devenir celle du 4 ; la barre du haut du F pivote pour devenir la diagonale du 4.</p>
+      <p class="morph-caption" id="morphCaptionF"></p>
     </div>
 
     <div class="morph-card">
@@ -227,7 +218,7 @@
           <animate attributeName="y2" values="88;88;85;85;88" keyTimes="0;0.2;0.5;0.7;1" dur="5s" repeatCount="indefinite"/>
         </line>
       </svg>
-      <p class="morph-caption"><b>7 ↔ L</b> — tourne le 7 : la diagonale se redresse en barre verticale, la barre du haut redescend tout en bas.</p>
+      <p class="morph-caption" id="morphCaptionL"></p>
     </div>
 
     <div class="morph-card">
@@ -241,24 +232,25 @@
           <line x1="53" y1="52" x2="70" y2="70" />
         </g>
       </svg>
-      <p class="morph-caption"><b>9 ↔ Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule : pas besoin de passer en minuscule.</p>
+      <p class="morph-caption" id="morphCaptionQ"></p>
     </div>
 
   </div>
 </div>
 
-<footer>Système Silhouette · fonctionne hors-ligne une fois installé</footer>
+<footer id="footer"></footer>
 
 <script>
 const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'Q'};
 const REVERSE = Object.fromEntries(Object.entries(TABLE).map(([d,l])=>[l,d]));
 
-// Étape supérieure : associer un "son" (2 chiffres → 2 consonnes) à un mot français
-// réel qui les contient, dans l'ordre, comme sons prononcés (pas comme lettres —
-// ex. le S de "cidre" sonne comme un C/K, celui de "dose" sonnerait comme un Z...).
-// Liste volontairement partielle pour l'instant : mieux vaut peu de mots sûrs que
-// beaucoup de mots approximatifs. Complétable plus tard.
-const WORDS = [
+// Étape supérieure : associer un "son" (2 chiffres → 2 consonnes) à un mot réel qui
+// les contient, dans l'ordre, comme sons prononcés (pas comme lettres — ex. le S de
+// "cidre" sonne comme un C/K, celui de "dose" sonnerait comme un Z...). Une liste par
+// langue, chacune vérifiée séparément (les pièges phonétiques ne sont pas les mêmes en
+// français et en anglais). Volontairement partielles pour l'instant : mieux vaut peu de
+// mots sûrs que beaucoup de mots approximatifs. Complétables plus tard.
+const WORDS_FR = [
   {code:'00', word:'DODO'},
   {code:'01', word:'DATE'},
   {code:'02', word:'DÉSERT'},
@@ -290,22 +282,149 @@ const WORDS = [
   {code:'97', word:'COLLE'},
 ];
 
-const LEVELS = [
-  {id:1, name:'Chiffre → lettre', digits:1, mode:'toLetter',
-    instruction:'Quelle est la lettre du Système Silhouette pour ce chiffre ?'},
-  {id:2, name:'Lettre → chiffre', digits:1, mode:'toDigit',
-    instruction:'Quel est le chiffre du Système Silhouette pour cette lettre ?'},
-  {id:3, name:'4 chiffres', digits:4, mode:'toLetter',
-    instruction:'Transforme ce nombre en lettres, chiffre par chiffre.'},
-  {id:4, name:'Numéro (10)', digits:10, mode:'toLetter',
-    instruction:'Transforme ce numéro de téléphone en lettres, chiffre par chiffre.'},
-  {id:5, name:'INSEE (15)', digits:15, mode:'toLetter',
-    instruction:'Transforme ce numéro de sécurité sociale en lettres, chiffre par chiffre.'},
-  {id:6, name:'Son → mot', digits:1, mode:'wordFromCode', hideTyped:true,
-    instruction:'Retrouve le mot français qui contient ces 2 sons, dans l\'ordre.'},
-  {id:7, name:'Mot → son', digits:1, mode:'codeFromWord', hideTyped:true,
-    instruction:'Retrouve les 2 chiffres (les 2 sons) cachés dans ce mot.'},
+const WORDS_EN = [
+  {code:'00', word:'DADDY'},
+  {code:'01', word:'DOT'},
+  {code:'02', word:'DAZE'},
+  {code:'03', word:'DOOM'},
+  {code:'04', word:'DEAF'},
+  {code:'05', word:'DOSE'},
+  {code:'06', word:'DOG'},
+  {code:'07', word:'DEAL'},
+  {code:'08', word:'DOUBLE'},
+  {code:'09', word:'DUCK'},
+  {code:'10', word:'TOAD'},
+  {code:'12', word:'TEASE'},
+  {code:'13', word:'TEAM'},
+  {code:'17', word:'TAIL'},
+  {code:'25', word:'ZEST'},
+  {code:'30', word:'MAID'},
+  {code:'31', word:'MEAT'},
+  {code:'34', word:'MUFFLE'},
+  {code:'40', word:'FADE'},
+  {code:'43', word:'FUME'},
+  {code:'50', word:'SEED'},
+  {code:'53', word:'SMOKE'},
+  {code:'60', word:'GUIDE'},
+  {code:'71', word:'LATE'},
+  {code:'73', word:'LIME'},
+  {code:'81', word:'BOAT'},
+  {code:'85', word:'BASE'},
+  {code:'90', word:'CODE'},
+  {code:'91', word:'KITE'},
+  {code:'93', word:'COMB'},
+  {code:'97', word:'COAL'},
 ];
+
+const LEVELS = [
+  {id:1, digits:1, mode:'toLetter',
+    name:{fr:'Chiffre → lettre', en:'Digit → letter'},
+    instruction:{fr:'Quelle est la lettre du Système Silhouette pour ce chiffre ?',
+                 en:'Which letter does the Silhouette System use for this digit?'}},
+  {id:2, digits:1, mode:'toDigit',
+    name:{fr:'Lettre → chiffre', en:'Letter → digit'},
+    instruction:{fr:'Quel est le chiffre du Système Silhouette pour cette lettre ?',
+                 en:'Which digit does the Silhouette System use for this letter?'}},
+  {id:3, digits:4, mode:'toLetter',
+    name:{fr:'4 chiffres', en:'4 digits'},
+    instruction:{fr:'Transforme ce nombre en lettres, chiffre par chiffre.',
+                 en:'Turn this number into letters, one digit at a time.'}},
+  {id:4, digits:10, mode:'toLetter',
+    name:{fr:'Numéro (10)', en:'Phone number (10)'},
+    instruction:{fr:'Transforme ce numéro de téléphone en lettres, chiffre par chiffre.',
+                 en:'Turn this phone number into letters, one digit at a time.'}},
+  {id:5, digits:15, mode:'toLetter',
+    name:{fr:'INSEE (15)', en:'Social security no. (15)'},
+    instruction:{fr:'Transforme ce numéro de sécurité sociale en lettres, chiffre par chiffre.',
+                 en:'Turn this social security number into letters, one digit at a time.'}},
+  {id:6, digits:1, mode:'wordFromCode', hideTyped:true,
+    name:{fr:'Son → mot', en:'Sound → word'},
+    instruction:{fr:'Retrouve le mot qui contient ces 2 sons, dans l\'ordre.',
+                 en:'Find the word that contains these 2 sounds, in order.'}},
+  {id:7, digits:1, mode:'codeFromWord', hideTyped:true,
+    name:{fr:'Mot → son', en:'Word → sound'},
+    instruction:{fr:'Retrouve les 2 chiffres (les 2 sons) cachés dans ce mot.',
+                 en:'Find the 2 digits (the 2 sounds) hidden in this word.'}},
+];
+
+// Tous les textes statiques (hors légende chiffre/lettre, universelle) par langue.
+const I18N = {
+  fr: {
+    sub: 'Entraînement à la mémorisation de chiffres',
+    intro: 'Le <b>Système Silhouette</b> associe une consonne à chaque chiffre, choisie parce ' +
+      'que sa <b>forme ressemble à celle du chiffre</b> (le 8 a deux boucles comme le B, le 1 ' +
+      'n\'a qu\'un trait vertical comme le T…). N\'importe quelle suite de chiffres devient ' +
+      'ainsi une suite de consonnes, dans laquelle on peut glisser des voyelles pour fabriquer ' +
+      'un mot facile à retenir — utile pour un mot de passe, un numéro de téléphone, un code.',
+    hint: 'Touche la bonne réponse · sur ordinateur : ← / →',
+    streak: n => 'Série actuelle : ' + n + '/3',
+    correct: 'Correct !',
+    levelUp: 'Niveau suivant débloqué !',
+    missed: attendu => 'Raté — attendu : ' + attendu,
+    morphTitle: 'Repères visuels',
+    morphF: '<b>4 ↔ F</b> — la barre verticale du F glisse à droite pour devenir celle du 4 ; ' +
+      'la barre du haut du F pivote pour devenir la diagonale du 4.',
+    morphL: '<b>7 ↔ L</b> — tourne le 7 : la diagonale se redresse en barre verticale, la barre ' +
+      'du haut redescend tout en bas.',
+    morphQ: '<b>9 ↔ Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule : pas ' +
+      'besoin de passer en minuscule.',
+    footer: 'Système Silhouette · fonctionne hors-ligne une fois installé',
+    pageTitle: 'Système Silhouette — Entraînement',
+    pageDescription: 'Entraîne-toi à mémoriser des chiffres avec le Système Silhouette : une consonne par chiffre, choisie par ressemblance de forme.',
+    rules: [
+      '<b>0 → D</b> — le 0 est une boucle fermée, comme la panse ronde du D.',
+      '<b>1 → T</b> — un seul trait vertical, comme la barre du T.',
+      '<b>2 → Z</b> — le Z trace le même angle en zigzag que le 2.',
+      '<b>3 → M</b> — posé à l\'horizontale, le M a trois jambages, comme les trois courbes du 3.',
+      '<b>4 → F</b> — voir l\'animation ci-dessous : la barre du F pivote pour former la diagonale du 4.',
+      '<b>5 → S</b> — le S est un 5 adouci, la même double courbe en miroir.',
+      '<b>6 → G</b> — le 6 est une boucle avec une queue, comme le ventre du G.',
+      '<b>7 → L</b> — voir l\'animation ci-dessous : le 7 se redresse pour former le L.',
+      '<b>8 → B</b> — le 8 empile deux boucles, exactement comme le B.',
+      '<b>9 → Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule.',
+    ],
+  },
+  en: {
+    sub: 'Number memorization training',
+    intro: 'The <b>Silhouette System</b> pairs a consonant with each digit, chosen because its ' +
+      '<b>shape looks like the digit</b> (8 has two loops like B, 1 is a single vertical stroke ' +
+      'like T…). Any string of digits becomes a string of consonants, into which you can slot ' +
+      'vowels to build an easy-to-remember word — handy for a password, a phone number, a code.',
+    hint: 'Tap the right answer · on desktop: ← / →',
+    streak: n => 'Current streak: ' + n + '/3',
+    correct: 'Correct!',
+    levelUp: 'Next level unlocked!',
+    missed: expected => 'Missed — expected: ' + expected,
+    morphTitle: 'Visual cues',
+    morphF: '<b>4 ↔ F</b> — F\'s vertical stroke slides right to become the 4\'s vertical stroke; ' +
+      'F\'s top bar rotates to become the 4\'s diagonal.',
+    morphL: '<b>7 ↔ L</b> — turn the 7: the diagonal straightens into a vertical stroke, and the ' +
+      'top bar drops all the way down.',
+    morphQ: '<b>9 ↔ Q</b> — the loop and tail of the 9 already look like a capital Q — no need to ' +
+      'go lowercase.',
+    footer: 'Silhouette System · works offline once installed',
+    pageTitle: 'Silhouette System — Training',
+    pageDescription: 'Train yourself to memorize numbers with the Silhouette System: one consonant per digit, chosen by visual resemblance.',
+    rules: [
+      '<b>0 → D</b> — 0 is a closed loop, like the round belly of the D.',
+      '<b>1 → T</b> — a single vertical stroke, like the T\'s upright.',
+      '<b>2 → Z</b> — Z traces the same zigzag angle as the 2.',
+      '<b>3 → M</b> — turned on its side, M has three strokes, like the three curves of the 3.',
+      '<b>4 → F</b> — see the animation below: F\'s bar rotates to form the 4\'s diagonal.',
+      '<b>5 → S</b> — S is a softened 5, the same mirrored double curve.',
+      '<b>6 → G</b> — 6 is a loop with a tail, like the belly of the G.',
+      '<b>7 → L</b> — see the animation below: the 7 straightens up to form the L.',
+      '<b>8 → B</b> — 8 stacks two loops, exactly like the B.',
+      '<b>9 → Q</b> — the loop and tail of the 9 already look like a capital Q.',
+    ],
+  },
+};
+
+let lang = 'fr';
+try{
+  const saved = localStorage.getItem('ssLang');
+  if(saved === 'fr' || saved === 'en') lang = saved;
+}catch(e){ /* stockage indisponible (navigation privée...) : on reste sur fr */ }
 
 let unlocked = 1;
 let current = 1;
@@ -317,6 +436,9 @@ let currentAnswer = []; // tableau d'"unités" à retrouver dans l'ordre (lettre
 let buffer = [];
 let pair = ['', ''];
 let locked = false; // empêche double-validation pendant l'affichage du feedback
+
+function t(){ return I18N[lang]; }
+function currentWords(){ return lang === 'fr' ? WORDS_FR : WORDS_EN; }
 
 function randomDigits(n){
   let s = '';
@@ -332,9 +454,58 @@ function currentKeys(){
   switch(currentLevel().mode){
     case 'toLetter': return Object.values(TABLE);
     case 'toDigit': return Object.keys(TABLE);
-    case 'wordFromCode': return WORDS.map(w=>w.word);
-    case 'codeFromWord': return WORDS.map(w=>w.code);
+    case 'wordFromCode': return currentWords().map(w=>w.word);
+    case 'codeFromWord': return currentWords().map(w=>w.code);
   }
+}
+
+// Applique tous les textes statiques (hors question en cours) dans la langue choisie.
+function applyStaticText(){
+  document.documentElement.lang = lang;
+  document.title = t().pageTitle;
+  const meta = document.querySelector('meta[name="description"]');
+  if(meta) meta.setAttribute('content', t().pageDescription);
+
+  document.getElementById('subtitle').textContent = t().sub;
+  document.getElementById('intro').innerHTML = t().intro;
+  document.getElementById('hint').textContent = t().hint;
+  document.getElementById('footer').textContent = t().footer;
+  document.getElementById('morphTitle').textContent = t().morphTitle;
+  document.getElementById('morphCaptionF').innerHTML = t().morphF;
+  document.getElementById('morphCaptionL').innerHTML = t().morphL;
+  document.getElementById('morphCaptionQ').innerHTML = t().morphQ;
+
+  const rulesEl = document.getElementById('rules');
+  rulesEl.innerHTML = '';
+  t().rules.forEach(html=>{
+    const li = document.createElement('li');
+    li.innerHTML = html;
+    rulesEl.appendChild(li);
+  });
+
+  renderLangToggle();
+}
+
+function renderLangToggle(){
+  const el = document.getElementById('langToggle');
+  el.innerHTML = '';
+  [['fr','FR'], ['en','EN']].forEach(([code,label])=>{
+    const b = document.createElement('button');
+    b.className = 'lang-btn' + (lang===code ? ' active' : '');
+    b.textContent = label;
+    b.type = 'button';
+    b.onclick = ()=> setLang(code);
+    el.appendChild(b);
+  });
+}
+
+function setLang(code){
+  if(code === lang) return;
+  lang = code;
+  try{ localStorage.setItem('ssLang', lang); }catch(e){}
+  applyStaticText();
+  renderLevels();
+  newQuestion();
 }
 
 function renderLevels(){
@@ -343,7 +514,7 @@ function renderLevels(){
   LEVELS.forEach(l=>{
     const b = document.createElement('button');
     b.className = 'lvl-btn' + (l.id===current?' active':'') + (l.id>unlocked?' locked':'');
-    b.textContent = l.id + '. ' + l.name;
+    b.textContent = l.id + '. ' + l.name[lang];
     b.disabled = l.id > unlocked;
     b.onclick = ()=>{ current = l.id; streak = 0; newQuestion(); renderLevels(); };
     el.appendChild(b);
@@ -415,7 +586,7 @@ function newQuestion(){
   fb.className = 'feedback';
   buffer = [];
   locked = false;
-  document.getElementById('exerciseHint').textContent = lvl.instruction || '';
+  document.getElementById('exerciseHint').textContent = lvl.instruction[lang] || '';
 
   if(lvl.mode === 'toLetter'){
     const digits = randomDigits(lvl.digits);
@@ -427,15 +598,17 @@ function newQuestion(){
     document.getElementById('prompt').textContent = letter;
     currentAnswer = [REVERSE[letter]];
   } else if(lvl.mode === 'wordFromCode'){
-    const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+    const words = currentWords();
+    const entry = words[Math.floor(Math.random()*words.length)];
     document.getElementById('prompt').textContent = entry.code;
     currentAnswer = [entry.word];
   } else if(lvl.mode === 'codeFromWord'){
-    const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+    const words = currentWords();
+    const entry = words[Math.floor(Math.random()*words.length)];
     document.getElementById('prompt').textContent = entry.word;
     currentAnswer = [entry.code];
   }
-  document.getElementById('streak').textContent = 'Série actuelle : ' + streak + '/3';
+  document.getElementById('streak').textContent = t().streak(streak);
   renderPyramid();
   renderTyped();
   nextPair();
@@ -478,7 +651,7 @@ function handleSuccess(){
     }
     streak = 0;
   }
-  fb.textContent = levelUp ? 'Niveau suivant débloqué !' : 'Correct !';
+  fb.textContent = levelUp ? t().levelUp : t().correct;
   fb.className = 'feedback ok';
   renderLevels();
   setTimeout(newQuestion, 600);
@@ -486,11 +659,11 @@ function handleSuccess(){
 
 function handleFailure(){
   const fb = document.getElementById('feedback');
-  fb.textContent = 'Raté — attendu : ' + currentAnswer.join('');
+  fb.textContent = t().missed(currentAnswer.join(''));
   fb.className = 'feedback ko';
   streak = 0;
   renderPyramid();
-  document.getElementById('streak').textContent = 'Série actuelle : 0/3';
+  document.getElementById('streak').textContent = t().streak(0);
   setTimeout(()=>{
     buffer = [];
     locked = false;
@@ -512,6 +685,7 @@ document.addEventListener('keydown', e=>{
   }
 });
 
+applyStaticText();
 renderLevels();
 newQuestion();
 
