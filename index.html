@@ -21,7 +21,13 @@
     -webkit-tap-highlight-color:transparent; overflow-x:hidden;
   }
   h1{font-size:1.3rem; margin:8px 0 2px; text-align:center}
-  .sub{color:var(--pink); font-size:.85rem; margin-bottom:20px; text-align:center}
+  .sub{color:var(--pink); font-size:.85rem; margin-bottom:14px; text-align:center}
+  .intro{
+    max-width:420px; width:100%; color:var(--muted); font-size:.82rem; line-height:1.5;
+    text-align:center; margin:0 0 20px;
+  }
+  .intro b{color:var(--text)}
+  .exercise-hint{text-align:center; color:var(--muted); font-size:.78rem; margin-bottom:4px}
   .panel{
     background:var(--panel); border-radius:18px; padding:20px;
     width:100%; max-width:420px; margin-bottom:16px;
@@ -31,6 +37,9 @@
   table.legend td{padding:8px 2px; text-align:center; border-bottom:1px solid #26262f}
   table.legend tr:first-child td{color:var(--pink); font-weight:700; border-bottom-color:#2a2a35}
   table.legend tr:last-child td{font-weight:600}
+  .rules{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:7px}
+  .rules li{color:var(--muted); font-size:.78rem; line-height:1.4}
+  .rules b{color:var(--text)}
   .levels{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; max-width:420px}
   .lvl-btn{
     background:var(--panel); color:var(--muted); border:1px solid #2a2a35;
@@ -65,6 +74,7 @@
   .choice-btn:active{background:var(--pink-dim); border-color:var(--pink); transform:scale(.97)}
   .choice-btn.right{border-color:var(--green); background:#173023}
   .choice-btn.wrong{border-color:var(--red); background:#301820}
+  .choice-btn.word{font-size:1.3rem; padding:0 8px; white-space:normal; line-height:1.15}
 
   .morph-title{font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; text-align:center; margin:0 0 12px}
   .morph-grid{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
@@ -107,7 +117,8 @@
   @media (min-width:700px){
     body{padding:40px 24px 64px}
     h1{font-size:1.7rem}
-    .sub{font-size:1rem; margin-bottom:28px}
+    .sub{font-size:1rem; margin-bottom:16px}
+    .intro{max-width:560px; font-size:.92rem; margin-bottom:28px}
     .panel{max-width:560px; padding:28px}
     .levels{max-width:560px}
     .lvl-btn{padding:10px 16px; font-size:.9rem}
@@ -116,6 +127,7 @@
     .prompt{font-size:2.6rem}
     .typed-box{width:32px; height:42px; font-size:1.3rem}
     .choice-btn{height:120px; font-size:2.6rem}
+    .choice-btn.word{font-size:1.7rem}
   }
 </style>
 </head>
@@ -124,11 +136,20 @@
 <h1>Système Silhouette</h1>
 <div class="sub">Entraînement à la mémorisation de chiffres</div>
 
+<p class="intro">
+  Le <b>Système Silhouette</b> associe une consonne à chaque chiffre, choisie parce que sa
+  <b>forme ressemble à celle du chiffre</b> (le 8 a deux boucles comme le B, le 1 n'a qu'un
+  trait vertical comme le T…). N'importe quelle suite de chiffres devient ainsi une suite de
+  consonnes, dans laquelle on peut glisser des voyelles pour fabriquer un mot facile à
+  retenir — utile pour un mot de passe, un numéro de téléphone, un code.
+</p>
+
 <div class="levels" id="levels"></div>
 
 <div class="pyramid" id="pyramid"></div>
 
 <div class="panel">
+  <div class="exercise-hint" id="exerciseHint"></div>
   <div class="prompt" id="prompt">—</div>
   <div class="typed" id="typed"></div>
   <div class="choices" id="choices"></div>
@@ -144,6 +165,18 @@
       <tr><td>D</td><td>T</td><td>Z</td><td>M</td><td>F</td><td>S</td><td>G</td><td>L</td><td>B</td><td>Q</td></tr>
     </table>
   </div>
+  <ul class="rules">
+    <li><b>0 → D</b> — le 0 est une boucle fermée, comme la panse ronde du D.</li>
+    <li><b>1 → T</b> — un seul trait vertical, comme la barre du T.</li>
+    <li><b>2 → Z</b> — le Z trace le même angle en zigzag que le 2.</li>
+    <li><b>3 → M</b> — posé à l'horizontale, le M a trois jambages, comme les trois courbes du 3.</li>
+    <li><b>4 → F</b> — voir l'animation ci-dessous : la barre du F pivote pour former la diagonale du 4.</li>
+    <li><b>5 → S</b> — le S est un 5 adouci, la même double courbe en miroir.</li>
+    <li><b>6 → G</b> — le 6 est une boucle avec une queue, comme le ventre du G.</li>
+    <li><b>7 → L</b> — voir l'animation ci-dessous : le 7 se redresse pour former le L.</li>
+    <li><b>8 → B</b> — le 8 empile deux boucles, exactement comme le B.</li>
+    <li><b>9 → Q</b> — la boucle et la queue du 9 ressemblent déjà à un Q majuscule.</li>
+  </ul>
 </div>
 
 <div class="panel">
@@ -220,18 +253,64 @@
 const TABLE = {0:'D',1:'T',2:'Z',3:'M',4:'F',5:'S',6:'G',7:'L',8:'B',9:'Q'};
 const REVERSE = Object.fromEntries(Object.entries(TABLE).map(([d,l])=>[l,d]));
 
+// Étape supérieure : associer un "son" (2 chiffres → 2 consonnes) à un mot français
+// réel qui les contient, dans l'ordre, comme sons prononcés (pas comme lettres —
+// ex. le S de "cidre" sonne comme un C/K, celui de "dose" sonnerait comme un Z...).
+// Liste volontairement partielle pour l'instant : mieux vaut peu de mots sûrs que
+// beaucoup de mots approximatifs. Complétable plus tard.
+const WORDS = [
+  {code:'00', word:'DODO'},
+  {code:'01', word:'DATE'},
+  {code:'02', word:'DÉSERT'},
+  {code:'03', word:'DAME'},
+  {code:'05', word:'DANSE'},
+  {code:'06', word:'DÉGÂT'},
+  {code:'07', word:'DALLE'},
+  {code:'08', word:'DOUBLE'},
+  {code:'10', word:'TIÈDE'},
+  {code:'12', word:'TISANE'},
+  {code:'13', word:'TOMATE'},
+  {code:'17', word:'TUILE'},
+  {code:'25', word:'ZESTE'},
+  {code:'30', word:'MODE'},
+  {code:'31', word:'MITE'},
+  {code:'34', word:'MOUFLE'},
+  {code:'40', word:'FADE'},
+  {code:'43', word:'FEMME'},
+  {code:'50', word:'CIDRE'},
+  {code:'53', word:'SOMME'},
+  {code:'60', word:'GUIDE'},
+  {code:'71', word:'LATTE'},
+  {code:'73', word:'LAME'},
+  {code:'81', word:'BOTTE'},
+  {code:'85', word:'BASSE'},
+  {code:'90', word:'CODE'},
+  {code:'91', word:'QUITTE'},
+  {code:'93', word:'COMA'},
+  {code:'97', word:'COLLE'},
+];
+
 const LEVELS = [
-  {id:1, name:'Chiffre → lettre', digits:1, mode:'toLetter'},
-  {id:2, name:'Lettre → chiffre', digits:1, mode:'toDigit'},
-  {id:3, name:'4 chiffres', digits:4, mode:'toLetter'},
-  {id:4, name:'Numéro (10)', digits:10, mode:'toLetter'},
-  {id:5, name:'INSEE (15)', digits:15, mode:'toLetter'},
+  {id:1, name:'Chiffre → lettre', digits:1, mode:'toLetter',
+    instruction:'Quelle est la lettre du Système Silhouette pour ce chiffre ?'},
+  {id:2, name:'Lettre → chiffre', digits:1, mode:'toDigit',
+    instruction:'Quel est le chiffre du Système Silhouette pour cette lettre ?'},
+  {id:3, name:'4 chiffres', digits:4, mode:'toLetter',
+    instruction:'Transforme ce nombre en lettres, chiffre par chiffre.'},
+  {id:4, name:'Numéro (10)', digits:10, mode:'toLetter',
+    instruction:'Transforme ce numéro de téléphone en lettres, chiffre par chiffre.'},
+  {id:5, name:'INSEE (15)', digits:15, mode:'toLetter',
+    instruction:'Transforme ce numéro de sécurité sociale en lettres, chiffre par chiffre.'},
+  {id:6, name:'Son → mot', digits:1, mode:'wordFromCode', hideTyped:true,
+    instruction:'Retrouve le mot français qui contient ces 2 sons, dans l\'ordre.'},
+  {id:7, name:'Mot → son', digits:1, mode:'codeFromWord', hideTyped:true,
+    instruction:'Retrouve les 2 chiffres (les 2 sons) cachés dans ce mot.'},
 ];
 
 let unlocked = 1;
 let current = 1;
 let streak = 0;
-let currentAnswer = '';
+let currentAnswer = []; // tableau d'"unités" à retrouver dans l'ordre (lettres, chiffres, ou un mot/code entier)
 
 // Réponse en cours de saisie (tableau de caractères) et paire de choix affichée
 // (le bon caractère + un distracteur, dans un ordre gauche/droite tiré au hasard).
@@ -250,7 +329,12 @@ function currentLevel(){
 }
 
 function currentKeys(){
-  return currentLevel().mode === 'toLetter' ? Object.values(TABLE) : Object.keys(TABLE);
+  switch(currentLevel().mode){
+    case 'toLetter': return Object.values(TABLE);
+    case 'toDigit': return Object.keys(TABLE);
+    case 'wordFromCode': return WORDS.map(w=>w.word);
+    case 'codeFromWord': return WORDS.map(w=>w.code);
+  }
 }
 
 function renderLevels(){
@@ -283,6 +367,10 @@ function renderTyped(){
   const lvl = currentLevel();
   const el = document.getElementById('typed');
   el.innerHTML = '';
+  // Les niveaux "mot" répondent en un seul choix (le mot ou le code entier) : la
+  // rangée de cases progressives, pensée pour des caractères un par un, n'a pas de sens ici.
+  el.style.display = lvl.hideTyped ? 'none' : '';
+  if(lvl.hideTyped) return;
   for(let i=0;i<lvl.digits;i++){
     const box = document.createElement('div');
     box.className = 'typed-box' + (i<buffer.length?' filled':'') + (i===buffer.length?' cursor':'');
@@ -309,9 +397,10 @@ function nextPair(){
 function renderChoices(cls){
   const el = document.getElementById('choices');
   el.innerHTML = '';
+  const isWord = currentLevel().mode === 'wordFromCode';
   pair.forEach((k,i)=>{
     const b = document.createElement('button');
-    b.className = 'choice-btn' + (cls && cls[i] ? ' ' + cls[i] : '');
+    b.className = 'choice-btn' + (isWord ? ' word' : '') + (cls && cls[i] ? ' ' + cls[i] : '');
     b.textContent = k;
     b.type = 'button';
     b.onclick = ()=> selectSide(i);
@@ -326,16 +415,25 @@ function newQuestion(){
   fb.className = 'feedback';
   buffer = [];
   locked = false;
+  document.getElementById('exerciseHint').textContent = lvl.instruction || '';
 
   if(lvl.mode === 'toLetter'){
     const digits = randomDigits(lvl.digits);
     document.getElementById('prompt').textContent = digits;
-    currentAnswer = digits.split('').map(d=>TABLE[d]).join('');
-  } else {
+    currentAnswer = digits.split('').map(d=>TABLE[d]);
+  } else if(lvl.mode === 'toDigit'){
     const letters = Object.values(TABLE);
     const letter = letters[Math.floor(Math.random()*letters.length)];
     document.getElementById('prompt').textContent = letter;
-    currentAnswer = REVERSE[letter];
+    currentAnswer = [REVERSE[letter]];
+  } else if(lvl.mode === 'wordFromCode'){
+    const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+    document.getElementById('prompt').textContent = entry.code;
+    currentAnswer = [entry.word];
+  } else if(lvl.mode === 'codeFromWord'){
+    const entry = WORDS[Math.floor(Math.random()*WORDS.length)];
+    document.getElementById('prompt').textContent = entry.word;
+    currentAnswer = [entry.code];
   }
   document.getElementById('streak').textContent = 'Série actuelle : ' + streak + '/3';
   renderPyramid();
@@ -388,7 +486,7 @@ function handleSuccess(){
 
 function handleFailure(){
   const fb = document.getElementById('feedback');
-  fb.textContent = 'Raté — attendu : ' + currentAnswer;
+  fb.textContent = 'Raté — attendu : ' + currentAnswer.join('');
   fb.className = 'feedback ko';
   streak = 0;
   renderPyramid();
